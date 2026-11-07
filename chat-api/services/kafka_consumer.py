@@ -1,1 +1,0 @@
-"""kafka_consumer.py - Kafka consumer service for the live chat API"""
