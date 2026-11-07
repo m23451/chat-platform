@@ -1,0 +1,1 @@
+""" app.py - main entry point for the chat API application """
