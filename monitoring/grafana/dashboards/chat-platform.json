@@ -187,8 +187,8 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (path) (rate(flask_http_request_total[5m]))",
-          "legendFormat": "{{path}}",
+          "expr": "sum by (url_rule) (rate(flask_http_request_duration_seconds_count[5m]))",
+          "legendFormat": "{{url_rule}}",
           "refId": "A"
         }
       ],
