@@ -19,3 +19,8 @@ If you edit the dashboard in the UI, re-export it (from `monitoring/`, with `.en
       | jq '.dashboard | .id = null' > grafana/dashboards/chat-platform.json
 
 then commit the changed file.
+
+## Alerts
+Rules are in `monitoring/prometheus/alerts.yml` (loaded via `rule_files`). Each has a runbook in `docs/runbooks/`.
+Validate after editing: `./up.sh exec prometheus promtool check rules /etc/prometheus/alerts.yml`, then `./up.sh restart prometheus`.
+See current alerts at http://localhost:9090/alerts.
