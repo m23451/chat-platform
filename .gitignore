@@ -90,3 +90,7 @@ logs/
 .DS_Store
 Thumbs.db
 desktop.ini
+.env
+.venv/
+__pycache__/
+monitoring/**/data/
