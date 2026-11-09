@@ -16,3 +16,6 @@ APP_INFO.labels(
     version=os.getenv("APP_VERSION", "unknown"),
     commit=os.getenv("GIT_COMMIT", "unknown"),
 ).set(1)
+
+
+WS_CONNECTIONS = Gauge("websocket_connections", "Active WebSocket connections")
