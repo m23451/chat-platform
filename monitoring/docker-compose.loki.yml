@@ -1,0 +1,14 @@
+services:
+  loki:
+    image: grafana/loki:latest   # pin a specific version once it works
+    container_name: loki
+    command: -config.file=/etc/loki/loki-config.yml
+    volumes:
+      - ./loki/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - loki-data:/loki
+    ports:
+      - "3100:3100"
+    restart: unless-stopped
+
+volumes:
+  loki-data:
