@@ -27,6 +27,7 @@ def save_message(username, text, client_id):
 
     user = users[username]
 
+    #contains message id counter, username, text, client id and time message was created
     message = {
         "id": message_id_counter,
         "author": username,

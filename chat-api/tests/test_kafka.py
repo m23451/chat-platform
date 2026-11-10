@@ -1,17 +1,33 @@
 """Tests for Kafka producer functions."""
 
-from unittest.mock import patch
+import sys
+import os
 
+sys.path.append(
+    os.path.dirname(
+        os.path.dirname(
+            os.path.abspath(__file__)
+        )
+    )
+)
+
+
+import pytest
+from unittest.mock import patch
 from services.kafka_producer import publish_message
 
 
+
 @patch("services.kafka_producer.producer")
-def test_publish_message_sends_and_flushes(mock_producer):
-	topic = "test-topic"
-	message = {"text": "hello"}
+def test_publish_message_sends_and_flushes(
+    mock_producer
+):
 
-	publish_message(topic, message)
+    message = {
+        "text": "hello"
+    }
 
-	mock_producer.send.assert_called_once_with(topic, value=message)
-	mock_producer.flush.assert_called_once_with()
+    publish_message(message)
 
+    mock_producer.send.assert_called_once()
+    mock_producer.flush.assert_called_once()

@@ -14,3 +14,4 @@ producer = KafkaProducer(
 def publish_message(message):
     #publishes message to the kafka topic
     producer.send(KAFKA_TOPIC, message)
+    producer.flush()
