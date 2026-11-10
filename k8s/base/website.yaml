@@ -7,8 +7,8 @@ spec:
     app: website
   ports:
     - name: http
-      port: 5001
-      targetPort: 5001
+      port: 8080
+      targetPort: 8080
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -27,17 +27,17 @@ spec:
       containers:
         - name: website
           image: chat-frontend:dev
-          imagePullPolicy: ifNotPresent
+          imagePullPolicy: IfNotPresent
           ports:
-            - containerPort: 5001
+            - containerPort: 8080
           env:
             - name: API_UPSTREAM
               value: chat-api:5001
           readinessProbe:
-            httpGet: { path: /healthz, port: 5001 }
+            httpGet: { path: /healthz, port: 8080 }
             periodSeconds: 5
           livenessProbe:
-            httpGet: { path: /healthz, port: 5001 }
+            httpGet: { path: /healthz, port: 8080 }
             periodSeconds: 10
           resources:
             requests: { cpu: 50m, memory: 32Mi }

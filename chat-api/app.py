@@ -2,8 +2,6 @@
 
 from flask import Flask, request, jsonify, render_template
 from services.kafka_producer import publish_message
-from contextlib import asynccontextmanager
-from pydantic import BaseModel
 import db
 import os
 
