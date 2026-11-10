@@ -9,7 +9,11 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "s"
+          "unit": "s",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "green"
+          }
         },
         "overrides": []
       },
@@ -187,8 +191,8 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (url_rule) (rate(flask_http_request_duration_seconds_count[5m]))",
-          "legendFormat": "{{url_rule}}",
+          "expr": "sum by (url_rule, method) (rate(flask_http_request_duration_seconds_count[5m]))",
+          "legendFormat": "{{method}} {{url_rule}}",
           "refId": "A"
         }
       ],
@@ -313,7 +317,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "{container=~\"chat-api.*\"}",
+          "expr": "{container=~\"chat-api.*\"} != \"/actuator/\"",
           "legendFormat": "",
           "refId": "A"
         }
