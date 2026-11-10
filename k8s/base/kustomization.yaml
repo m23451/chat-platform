@@ -3,7 +3,7 @@ kind: Kustomization
 resources:
   - postgres.yaml
   - website.yaml
-  - servicemonitor.yaml
+  - chat-api.yaml
 configMapGenerator:
   - name: postgres-init
     files:
