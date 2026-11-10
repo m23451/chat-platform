@@ -1,3 +1,6 @@
 flask
 kafka-python
 pytest
+flask
+psycopg[binary]
+psycopg-pool
