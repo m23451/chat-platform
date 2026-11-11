@@ -1,5 +1,3 @@
-"""kafka_producer.py - Kafka producer service for the live chat API application"""
-
 from kafka import KafkaProducer
 import json
 import os
@@ -10,7 +8,6 @@ KAFKA_TOPIC = os.getenv("KAFKA_TOPIC", "chat-messages")
 producer = None
 
 def get_producer():
-    """Connect to Kafka the first time it's needed, then reuse the connection."""
     global producer
     if producer is None:
         producer = KafkaProducer(
