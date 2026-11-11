@@ -32,7 +32,7 @@ spec:
             - containerPort: 8080
           env:
             - name: API_UPSTREAM
-              value: chat-api:5001
+              value: chat-api:8000
           readinessProbe:
             httpGet: { path: /healthz, port: 8080 }
             periodSeconds: 5

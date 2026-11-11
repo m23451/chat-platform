@@ -1,14 +1,18 @@
 """ app.py - main entry point for the chat API application """
 
 from flask import Flask, request, jsonify, render_template
+
 from services.kafka_producer import publish_message
+from flask_sock import Sock
 import db
 import os
+import chatSocket
 
 KAFKA_BROKER_URL = os.getenv("KAFKA_BROKER_URL", "localhost:9092")
 KAFKA_TOPIC = os.getenv("KAFKA_TOPIC", "chat-messages")
 
 app = Flask(__name__)
+sock = Sock(app)
 
 @app.route("/")
 def home():
@@ -16,7 +20,7 @@ def home():
 
 @app.route("/api/messages", methods=["POST"])
 def send_message():
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     if (not data
             or not str(data.get("author", "")).strip()
             or not str(data.get("text", "")).strip()):
@@ -27,7 +31,7 @@ def send_message():
         text=data["text"],
         client_id=data.get("clientId")
     )
-
+    chatSocket.broadcast(message)
     try:
         publish_message(message)
     except Exception as e:
@@ -48,6 +52,16 @@ def history():
         return jsonify({"error": "limit must be between 1 and 200"}), 400
     return jsonify(db.load_history(limit, before))
 
+@sock.route("/api/message-ws")
+def message_ws(ws):
+    chatSocket.add(ws)
+    try:
+        while True:
+            ws.receive()
+    except Exception:
+        pass
+    finally:
+        chatSocket.remove(ws)
 
 @app.route("/kubernetes/liveness", methods=["GET"])
 def liveness():
