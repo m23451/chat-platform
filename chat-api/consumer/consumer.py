@@ -1,29 +1,36 @@
-from kafka import KafkaConsumer
 import json
+import logging
+import os
+import threading
+import time
+from kafka import KafkaConsumer
+import chatSocket
 
-from services.database import save_message
 
-KAFKA_BROKER_URL = 'localhost:9092' 
-KAFKA_TOPIC = 'chat-messages'
+log = logging.getLogger(__name__)
 
-consumer = KafkaConsumer(
-    "chat-messages",
-    bootstrap_servers=KAFKA_BROKER_URL,
-    auto_offset_reset='latest', #kafka reads latest messages from the topic
-    value_deserializer=lambda v: json.loads(v.decode('utf-8'))
-)
+KAFKA_BROKER_URL = os.getenv("KAFKA_BROKER_URL", "localhost:9092")
+KAFKA_TOPIC = os.getenv("KAFKA_TOPIC", "chat-messages")
 
-print("Kafka consumer is running and listening to topic", KAFKA_TOPIC)
+def _run():
+    print("Kafka consumer is running and listening to topic", KAFKA_TOPIC)
+    while True:
+        try:
+            consumer = KafkaConsumer(
+                KAFKA_TOPIC,
+                bootstrap_servers=KAFKA_BROKER_URL,
+                group_id=None,                 # no group: EVERY pod gets EVERY message
+                auto_offset_reset="latest",    # only new messages, not old ones
+                value_deserializer=lambda b: json.loads(b.decode("utf-8")),
+            )
+            log.warning("Kafka consumer connected to %s", KAFKA_BROKER_URL)
+            for record in consumer:
+                chatSocket.broadcast(record.value)
+        except Exception as e:
+            log.warning("Kafka consumer error, retrying in 5s: %s", e)
+            time.sleep(5)
 
-for kafka_message in consumer:
-    
-    data = kafka_message.value
-    print("Recieved message:", data)
 
-    saved = save_message(
-        username=data["username"],
-        text=data["text"],
-        client_id=data["client_id"]
-    )
-
-    print("Saved:",saved)
+def start():
+    """Run the consumer in the background so it doesn't block the API."""
+    threading.Thread(target=_run, daemon=True, name="kafka-consumer").start()
