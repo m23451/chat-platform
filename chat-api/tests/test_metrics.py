@@ -114,3 +114,37 @@ def test_timed_query_records_by_operation():
 
     assert run() == "ok"
     assert sample("db_query_duration_seconds_count", labels) == before + 1
+
+
+def test_post_records_delivery_latency(client):
+    before = sample("chat_message_delivery_seconds_count")
+    assert good_post(client).status_code == 201
+    assert sample("chat_message_delivery_seconds_count") == before + 1
+
+
+def test_websocket_route_counts_the_connection():
+    import threading
+
+    from simple_websocket import Client
+    from werkzeug.serving import make_server
+
+    server = make_server("127.0.0.1", 0, app_module.app, threaded=True)
+    port = server.server_port
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+
+    def wait_for(expected):
+        deadline = time.time() + 3
+        while time.time() < deadline:
+            if sample("websocket_connections") == expected:
+                return True
+            time.sleep(0.05)
+        return False
+
+    before = sample("websocket_connections")
+    try:
+        ws = Client.connect(f"ws://127.0.0.1:{port}/api/message-ws")
+        assert wait_for(before + 1)     # counted when the browser connects
+        ws.close()
+        assert wait_for(before)         # and counted back down when it leaves
+    finally:
+        server.shutdown()
