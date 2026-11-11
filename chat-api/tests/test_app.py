@@ -2,7 +2,6 @@
 
 import sys
 import os
-import db
 
 sys.path.append(
     os.path.dirname(
@@ -11,7 +10,7 @@ sys.path.append(
         )
     )
 )
-
+import db
 import pytest
 from app import app
 
