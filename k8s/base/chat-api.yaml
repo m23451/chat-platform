@@ -43,6 +43,10 @@ spec:
               value: postgresql://$(DB_USER):$(DB_PASSWORD)@postgres:5432/chat
             - name: KAFKA_BROKER_URL
               value: chat-kafka-kafka-bootstrap:9092   # Kafka comes later
+            - name: APP_VERSION
+              value: "dev"
+            - name: GIT_COMMIT
+              value: "unknown"
           livenessProbe:
             httpGet: { path: /kubernetes/liveness, port: 8000 }
             periodSeconds: 10
