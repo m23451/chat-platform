@@ -5,6 +5,7 @@ from flask import Flask, request, jsonify, render_template
 from services.kafka_producer import publish_message
 from flask_sock import Sock
 import db
+import metrics
 import os
 import chatSocket
 
@@ -13,6 +14,11 @@ KAFKA_TOPIC = os.getenv("KAFKA_TOPIC", "chat-messages")
 
 app = Flask(__name__)
 sock = Sock(app)
+metrics.setup_metrics(app)
+
+# time every database call -> db_query_duration_seconds{operation=...}
+db.save_message = metrics.timed_query("insert_message")(db.save_message)
+db.load_history = metrics.timed_query("select_history")(db.load_history)
 
 @app.route("/")
 def home():
@@ -20,10 +26,12 @@ def home():
 
 @app.route("/api/messages", methods=["POST"])
 def send_message():
+    metrics.MESSAGES_RECEIVED.inc()
     data = request.get_json(silent=True) or {}
     if (not data
             or not str(data.get("author", "")).strip()
             or not str(data.get("text", "")).strip()):
+        metrics.VALIDATION_ERRORS.inc()
         return jsonify({"error": "missing fields."}), 400
 
     message = db.save_message(
@@ -31,10 +39,13 @@ def send_message():
         text=data["text"],
         client_id=data.get("clientId")
     )
+    metrics.MESSAGES_SAVED.inc()
+    metrics.observe_delivery_iso(message.get("createdAt"))   # just before the push to browsers
     chatSocket.broadcast(message)
     try:
         publish_message(message)
     except Exception as e:
+        metrics.KAFKA_PUBLISH_ERRORS.inc()
         app.logger.warning("Kafka publish failed: %s", e)
     return jsonify(message), 201
 
@@ -54,6 +65,7 @@ def history():
 
 @sock.route("/api/message-ws")
 def message_ws(ws):
+    metrics.WS_CONNECTIONS.inc()
     chatSocket.add(ws)
     try:
         while True:
@@ -61,6 +73,7 @@ def message_ws(ws):
     except Exception:
         pass
     finally:
+        metrics.WS_CONNECTIONS.dec()
         chatSocket.remove(ws)
 
 @app.route("/kubernetes/liveness", methods=["GET"])
