@@ -5,3 +5,4 @@ flask
 psycopg[binary]
 psycopg-pool
 gunicorn
+flask-sock
