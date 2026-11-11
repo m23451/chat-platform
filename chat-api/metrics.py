@@ -6,6 +6,7 @@ Endpoints (from the project brief):
 """
 import os
 import time
+from datetime import datetime
 from contextlib import contextmanager
 from functools import wraps
 
@@ -126,3 +127,11 @@ KAFKA_PUBLISH_ERRORS = Counter(
     "chat_kafka_publish_errors_total",
     "Messages saved to the database but not published to Kafka",
 )
+
+
+def observe_delivery_iso(created_at_iso):
+    """Like observe_delivery, but takes an ISO-8601 timestamp such as the database's createdAt."""
+    try:
+        observe_delivery(datetime.fromisoformat(created_at_iso).timestamp())
+    except (TypeError, ValueError):
+        pass   # never let a metric break message delivery
