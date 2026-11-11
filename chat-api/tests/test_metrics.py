@@ -1,55 +1,86 @@
+"""Tests for metrics.py, run against the real chat API routes (no database or Kafka needed)."""
+import time
+
 import pytest
-from flask import Flask
 from prometheus_client import REGISTRY
 
+import app as app_module
+import db
 import metrics
 
 
 @pytest.fixture(scope="module")
 def client():
-    app = Flask(__name__)
+    return app_module.app.test_client()
 
-    @app.get("/api/messages")
-    def get_messages():
-        return {"messages": []}
 
-    @app.get("/actuator/health")
-    def health():
-        return {"status": "UP"}
-
-    metrics.setup_metrics(app)
-    return app.test_client()
+@pytest.fixture(autouse=True)
+def fake_backends(monkeypatch):
+    saved = {"id": 1, "author": "mo", "text": "hi", "clientId": "c1",
+             "createdAt": "2026-01-01T00:00:00+00:00"}
+    monkeypatch.setattr(db, "load_history", lambda limit, before: [])
+    monkeypatch.setattr(db, "save_message", lambda author, text, client_id: saved)
+    monkeypatch.setattr(db, "is_healthy", lambda: True)
+    monkeypatch.setattr(app_module, "publish_message", lambda message: None)
 
 
 def sample(name, labels=None):
     return REGISTRY.get_sample_value(name, labels or {}) or 0
 
 
+def scrape(client):
+    return client.get("/actuator/metrics").get_data(as_text=True)
+
+
+def good_post(client):
+    return client.post("/api/messages", json={"author": "mo", "text": "hi", "clientId": "c1"})
+
+
 def test_metrics_endpoint_serves_prometheus_text(client):
     client.get("/api/messages")
-    resp = client.get("/actuator/metrics")
-    assert resp.status_code == 200
-    text = resp.get_data(as_text=True)
-    assert "flask_http_request_total" in text
+    text = scrape(client)
+    assert "flask_http_request_duration_seconds_count" in text
     assert "process_start_time_seconds" in text
     assert "app_info" in text
 
 
-def test_requests_are_labelled_by_route(client):
+def test_history_route_is_measured_by_route(client):
     client.get("/api/messages")
-    text = client.get("/actuator/metrics").get_data(as_text=True)
-    assert 'url_rule="/api/messages"' in text
+    assert 'url_rule="/api/messages"' in scrape(client)
 
 
-def test_actuator_probes_are_not_counted(client):
-    client.get("/actuator/health")
-    text = client.get("/actuator/metrics").get_data(as_text=True)
-    assert 'url_rule="/actuator/health"' not in text
+def test_post_counts_received_and_saved(client):
+    received = sample("chat_messages_received_total")
+    saved = sample("chat_messages_saved_total")
+    assert good_post(client).status_code == 201
+    assert sample("chat_messages_received_total") == received + 1
+    assert sample("chat_messages_saved_total") == saved + 1
+
+
+def test_invalid_post_counts_validation_error(client):
+    before = sample("chat_validation_errors_total")
+    assert client.post("/api/messages", json={}).status_code == 400
+    assert sample("chat_validation_errors_total") == before + 1
+
+
+def test_kafka_failure_is_counted_and_api_still_succeeds(client, monkeypatch):
+    def boom(message):
+        raise RuntimeError("kafka down")
+
+    monkeypatch.setattr(app_module, "publish_message", boom)
+    before = sample("chat_kafka_publish_errors_total")
+    assert good_post(client).status_code == 201
+    assert sample("chat_kafka_publish_errors_total") == before + 1
+
+
+def test_kubernetes_probes_are_not_counted(client):
+    client.get("/kubernetes/liveness")
+    client.get("/kubernetes/ready")
+    assert "/kubernetes/" not in scrape(client)
 
 
 def test_info_endpoint_returns_version_and_commit(client):
-    body = client.get("/actuator/info").get_json()
-    assert set(body) == {"version", "commit"}
+    assert set(client.get("/actuator/info").get_json()) == {"version", "commit"}
 
 
 def test_track_websocket_counts_up_and_down():
@@ -68,19 +99,18 @@ def test_track_websocket_decrements_on_error():
 
 
 def test_observe_delivery_records_a_sample():
-    import time
     before = sample("chat_message_delivery_seconds_count")
     metrics.observe_delivery(time.time() - 0.05)
     assert sample("chat_message_delivery_seconds_count") == before + 1
 
 
 def test_timed_query_records_by_operation():
-    labels = {"operation": "insert_message"}
+    labels = {"operation": "demo_operation"}
     before = sample("db_query_duration_seconds_count", labels)
 
-    @metrics.timed_query("insert_message")
-    def insert():
+    @metrics.timed_query("demo_operation")
+    def run():
         return "ok"
 
-    assert insert() == "ok"
+    assert run() == "ok"
     assert sample("db_query_duration_seconds_count", labels) == before + 1
