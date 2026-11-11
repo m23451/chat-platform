@@ -7,12 +7,14 @@ from flask_sock import Sock
 import db
 import os
 import chatSocket
+from consumer import consumer
 
 KAFKA_BROKER_URL = os.getenv("KAFKA_BROKER_URL", "localhost:9092")
 KAFKA_TOPIC = os.getenv("KAFKA_TOPIC", "chat-messages")
 
 app = Flask(__name__)
 sock = Sock(app)
+consumer.start()
 
 @app.route("/")
 def home():
@@ -31,7 +33,6 @@ def send_message():
         text=data["text"],
         client_id=data.get("clientId")
     )
-    chatSocket.broadcast(message)
     try:
         publish_message(message)
     except Exception as e:
