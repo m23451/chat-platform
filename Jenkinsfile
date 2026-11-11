@@ -23,11 +23,12 @@ pipeline{
         stage('Test') {
             steps {
                 sh '''
-                        python3 -m venv .ci-venv
-                        . .ci-venv/bin/activate
-                        pip install -q -r chat-api/requirements.txt
-                        cd chat-api
-                        timeout 60 python -c "import app; print('chat-api imports OK')"
+                    python3 -m venv .ci-venv
+                    . .ci-venv/bin/activate
+                    pip install -q -r chat-api/requirements.txt pytest
+                    cd chat-api
+                    timeout 60 python -c "import app; print('chat-api imports OK')"
+                    pytest tests -v
                 '''
             }
         }
