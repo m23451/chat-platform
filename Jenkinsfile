@@ -10,7 +10,7 @@ pipeline{
     }
 
     stages {
-        stage('Checkout')
+        stage('Checkout') {
             steps {
                 checkout scm
                 sh 'git log -1 --oneline'
@@ -18,6 +18,7 @@ pipeline{
                     env.SHORT_COMMIT = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
                 }
             }
+        }
 
         stage('Test') {
             steps {
@@ -31,7 +32,7 @@ pipeline{
             }
         }
 
-        stage('Test')
+        stage('Test') {
             steps {
                 sh '''
                     docker build \
