@@ -32,7 +32,7 @@ pipeline{
             }
         }
 
-        stage('Test') {
+        stage('Build images') {
             steps {
                 sh '''
                     docker build \
