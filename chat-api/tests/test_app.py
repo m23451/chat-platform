@@ -2,6 +2,7 @@
 
 import sys
 import os
+import db
 
 sys.path.append(
     os.path.dirname(
@@ -22,6 +23,7 @@ def test_home(client):
     response = client.get("/")
     assert response.status_code == 200
 
-def test_get_messages(client):
+def test_get_messages(client, monkeypatch):                              # ← added monkeypatch
+    monkeypatch.setattr(db, "load_history", lambda limit, before: [])
     response = client.get("/api/messages")
     assert response.status_code == 200

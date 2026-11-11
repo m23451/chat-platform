@@ -3,6 +3,8 @@ pipeline{
 
     environment {
         APP_VERSION = '1.0.0'
+        REGISTRY    = '026146807811.dkr.ecr.eu-north-1.amazonaws.com'   // ← new
+        AWS_REGION  = 'eu-north-1'
     }
 
     options {
@@ -48,6 +50,28 @@ pipeline{
 
                 '''
 
+            }
+        }
+    }
+
+
+    stage('Push to ECR') {
+        steps {
+            withCredentials([usernamePassword(credentialsId: 'aws-ecr-push',
+                                              usernameVariable: 'AWS_ACCESS_KEY_ID',
+                                              passwordVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+                sh '''
+                    docker run --rm -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY amazon/aws-cli \
+                        ecr get-login-password --region $AWS_REGION \
+                      | docker login --username AWS --password-stdin $REGISTRY
+
+                    for app in chat-api chat-frontend; do
+                        docker tag  $app:$SHORT_COMMIT $REGISTRY/chat-site/$app:$SHORT_COMMIT
+                        docker push $REGISTRY/chat-site/$app:$SHORT_COMMIT
+                    done
+
+                    docker logout $REGISTRY
+                '''
             }
         }
     }
