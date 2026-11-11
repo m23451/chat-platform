@@ -68,10 +68,10 @@ pipeline {
 
                         docker logout $REGISTRY
                     '''
-                }   // closes withCredentials
-            }       // closes steps
-        }           // closes stage('Push to ECR')  ← this was missing
-    }               // closes stages
+                }
+            }
+        }
+    }
 
     post {
         always {
