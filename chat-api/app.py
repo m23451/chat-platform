@@ -8,17 +8,22 @@ import db
 import metrics
 import os
 import chatSocket
+from consumer import consumer
 
 KAFKA_BROKER_URL = os.getenv("KAFKA_BROKER_URL", "localhost:9092")
 KAFKA_TOPIC = os.getenv("KAFKA_TOPIC", "chat-messages")
 
 app = Flask(__name__)
 sock = Sock(app)
+consumer.start()
+
+
 metrics.setup_metrics(app)
 
 # time every database call -> db_query_duration_seconds{operation=...}
 db.save_message = metrics.timed_query("insert_message")(db.save_message)
 db.load_history = metrics.timed_query("select_history")(db.load_history)
+
 
 @app.route("/")
 def home():
@@ -39,9 +44,10 @@ def send_message():
         text=data["text"],
         client_id=data.get("clientId")
     )
+
     metrics.MESSAGES_SAVED.inc()
     metrics.observe_delivery_iso(message.get("createdAt"))   # just before the push to browsers
-    chatSocket.broadcast(message)
+
     try:
         publish_message(message)
     except Exception as e:
