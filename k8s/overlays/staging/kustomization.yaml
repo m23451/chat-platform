@@ -4,7 +4,7 @@ kind: Kustomization
 resources:
   - ../eks
 
-namespace: prod
+namespace: staging
 
 images:
   - name: chat-api
