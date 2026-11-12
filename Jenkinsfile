@@ -39,6 +39,7 @@ pipeline {
         }
 
         stage('Build images') {
+            when { expression { env.SKIP_CI != 'true' } }
             steps {
                 sh '''
                     docker build \
@@ -55,6 +56,7 @@ pipeline {
         }
 
         stage('Push to ECR') {
+            when { expression { env.SKIP_CI != 'true' } }
             steps {
                 withCredentials([usernamePassword(credentialsId: 'aws-ecr-push',
                                                   usernameVariable: 'AWS_ACCESS_KEY_ID',
@@ -85,7 +87,7 @@ pipeline {
                 }
             }
             steps {
-                withCredentials([usernamePassword(credentialsId: 'YOUR-GITHUB-CRED-ID',   // ← your ID
+                withCredentials([usernamePassword(credentialsId: 'github-token',
                                                   usernameVariable: 'GIT_USER',
                                                   passwordVariable: 'GIT_TOKEN')]) {
                     sh '''
