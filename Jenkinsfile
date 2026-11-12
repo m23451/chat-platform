@@ -74,6 +74,7 @@ pipeline {
                     done
                 '''
             }
+        }
 
         stage('Push to ECR') {
             when { expression { env.SKIP_CI != 'true' } }
