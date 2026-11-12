@@ -1,0 +1,16 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: StressChaos
+metadata:
+  name: stress-chat-api
+  namespace: staging
+spec:
+  mode: one
+  selector:
+    namespaces: [staging]
+    labelSelectors:
+      app: chat-api
+  stressors:
+    cpu:
+      workers: 2
+      load: 100
+  duration: "2m"
