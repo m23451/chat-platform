@@ -56,6 +56,25 @@ pipeline {
             }
         }
 
+        stage('Security scan') {
+            when { expression { env.SKIP_CI != 'true' } }
+            steps {
+                sh '''
+                    for app in chat-api chat-frontend; do
+                        echo "Scanning $app:$SHORT_COMMIT"
+                        docker run --rm \
+                            -v /var/run/docker.sock:/var/run/docker.sock \
+                            -v trivy-cache:/root/.cache/ \
+                            aquasec/trivy:latest image \
+                            --severity CRITICAL \
+                            --ignore-unfixed \
+                            --exit-code 1 \
+                            --no-progress \
+                            $app:$SHORT_COMMIT
+                    done
+                '''
+            }
+
         stage('Push to ECR') {
             when { expression { env.SKIP_CI != 'true' } }
             steps {
