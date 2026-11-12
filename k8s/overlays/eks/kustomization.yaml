@@ -9,10 +9,10 @@ resources:
 images:
   - name: chat-api
     newName: 026146807811.dkr.ecr.eu-north-1.amazonaws.com/chat-site/chat-api
-    newTag: v1
+    newTag: adbda72
   - name: chat-frontend
     newName: 026146807811.dkr.ecr.eu-north-1.amazonaws.com/chat-site/chat-frontend
-    newTag: v1
+    newTag: adbda72
 
 
 patches:
