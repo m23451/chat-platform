@@ -46,7 +46,6 @@ def send_message():
     )
 
     metrics.MESSAGES_SAVED.inc()
-    metrics.observe_delivery_iso(message.get("createdAt"))   # just before the push to browsers
 
     try:
         publish_message(message)

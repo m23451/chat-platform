@@ -5,6 +5,7 @@ import threading
 import time
 from kafka import KafkaConsumer
 import chatSocket
+import metrics
 
 
 log = logging.getLogger(__name__)
@@ -25,8 +26,13 @@ def _run():
             )
             log.warning("Kafka consumer connected to %s", KAFKA_BROKER_URL)
             for record in consumer:
-                chatSocket.broadcast(record.value)
+                with metrics.MESSAGE_PROCESSING_DURATION.time():
+                    metrics.MESSAGES_CONSUMED.inc()
+                    # delivery latency: saved in the database -> about to be pushed to browsers
+                    metrics.observe_delivery_iso(record.value.get("createdAt"))
+                    chatSocket.broadcast(record.value)
         except Exception as e:
+            metrics.CONSUMER_ERRORS.inc()
             log.warning("Kafka consumer error, retrying in 5s: %s", e)
             time.sleep(5)
 

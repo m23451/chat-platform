@@ -116,10 +116,19 @@ def test_timed_query_records_by_operation():
     assert sample("db_query_duration_seconds_count", labels) == before + 1
 
 
-def test_post_records_delivery_latency(client):
+def test_observe_delivery_iso_records_a_sample():
+    from datetime import datetime, timezone
+
     before = sample("chat_message_delivery_seconds_count")
-    assert good_post(client).status_code == 201
+    metrics.observe_delivery_iso(datetime.now(timezone.utc).isoformat())
     assert sample("chat_message_delivery_seconds_count") == before + 1
+
+
+def test_observe_delivery_iso_ignores_bad_values():
+    before = sample("chat_message_delivery_seconds_count")
+    metrics.observe_delivery_iso(None)
+    metrics.observe_delivery_iso("not a date")
+    assert sample("chat_message_delivery_seconds_count") == before
 
 
 def test_websocket_route_counts_the_connection():

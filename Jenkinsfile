@@ -5,6 +5,8 @@ pipeline {
         APP_VERSION = '1.0.0'
         REGISTRY    = '026146807811.dkr.ecr.eu-north-1.amazonaws.com'
         AWS_REGION  = 'eu-north-1'
+        REPO        = 'github.com/m23451/chat-platform.git'
+        STAGING_URL = 'http://a4336909f9e2f41069a3e45be725e5ff-1880544154.eu-north-1.elb.amazonaws.com:8080'
     }
 
     options {
@@ -19,7 +21,6 @@ pipeline {
                 script {
                     env.SHORT_COMMIT = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
                     env.SKIP_CI = sh(script: 'git log -1 --pretty=%B | grep -q "\\[skip ci\\]" && echo true || echo false', returnStdout: true).trim()
-
                 }
             }
         }
@@ -77,12 +78,10 @@ pipeline {
             }
         }
 
-
-
-        stage('Update deploy tag') {
+        stage('Deploy to staging') {
             when {
                 allOf {
-                    branch 'develop'
+                    anyOf { branch 'develop'; branch 'main' }
                     expression { env.SKIP_CI != 'true' }
                 }
             }
@@ -91,16 +90,85 @@ pipeline {
                                                   usernameVariable: 'GIT_USER',
                                                   passwordVariable: 'GIT_TOKEN')]) {
                     sh '''
-                        # Point both images at the tag we just pushed
-                        sed -i "s/newTag: .*/newTag: $SHORT_COMMIT/" k8s/overlays/eks/kustomization.yaml
-
+                        rm -rf deploy && git clone -q --depth 1 -b develop https://$REPO deploy
+                        cd deploy
+                        sed -i "s/newTag: .*/newTag: $SHORT_COMMIT/" k8s/overlays/staging/kustomization.yaml
                         git config user.name  "Jenkins"
                         git config user.email "jenkins@chat-platform.local"
-                        git add k8s/overlays/eks/kustomization.yaml
-                        git commit -m "Deploy $SHORT_COMMIT [skip ci]"
+                        # Only commit if the tag actually changed
+                        git diff --quiet || {
+                            git commit -qam "Deploy $SHORT_COMMIT to staging [skip ci]"
+                            git push -q https://$GIT_USER:$GIT_TOKEN@$REPO HEAD:develop
+                        }
+                    '''
+                }
+            }
+        }
 
-                        # Push back to the same branch
-                        git push https://$GIT_USER:$GIT_TOKEN@github.com/m23451/chat-platform.git HEAD:$BRANCH_NAME
+        stage('Smoke test staging') {
+            when {
+                allOf {
+                    anyOf { branch 'develop'; branch 'main' }
+                    expression { env.SKIP_CI != 'true' }
+                }
+            }
+            steps {
+                sh '''
+                    for i in $(seq 1 40); do
+                        if curl -fs $STAGING_URL/actuator/info | grep -q "$SHORT_COMMIT"; then
+                            echo "Staging is running $SHORT_COMMIT"; break
+                        fi
+                        [ $i -eq 40 ] && { echo "Timed out waiting for staging"; exit 1; }
+                        sleep 15
+                    done
+
+                    # 2. Check the key features work
+                    curl -fs $STAGING_URL/healthz                                   # website up
+                    curl -fs "$STAGING_URL/api/messages?limit=1" > /dev/null        # history loads (DB ok)
+                    curl -fs -X POST -H "Content-Type: application/json" \
+                         -d "{\\"author\\":\\"smoke-test\\",\\"text\\":\\"smoke test $SHORT_COMMIT\\"}" \
+                         $STAGING_URL/api/messages > /dev/null                      # sending works
+                    echo "Smoke tests passed"
+                '''
+            }
+        }
+
+        stage('Approve prod') {
+            when {
+                allOf {
+                    branch 'main'
+                    expression { env.SKIP_CI != 'true' }
+                }
+            }
+            steps {
+                timeout(time: 1, unit: 'HOURS') {
+                    input message: "Staging passed. Deploy ${env.SHORT_COMMIT} to prod?", ok: 'Deploy'
+                }
+            }
+        }
+
+        stage('Deploy to prod') {
+            when {
+                allOf {
+                    branch 'main'
+                    expression { env.SKIP_CI != 'true' }
+                }
+            }
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'github-token',
+                                                  usernameVariable: 'GIT_USER',
+                                                  passwordVariable: 'GIT_TOKEN')]) {
+                    sh '''
+                        # Fresh copy of main (the branch Argo CD watches for prod)
+                        rm -rf deploy && git clone -q --depth 1 -b main https://$REPO deploy
+                        cd deploy
+                        sed -i "s/newTag: .*/newTag: $SHORT_COMMIT/" k8s/overlays/prod/kustomization.yaml
+                        git config user.name  "Jenkins"
+                        git config user.email "jenkins@chat-platform.local"
+                        git diff --quiet || {
+                            git commit -qam "Deploy $SHORT_COMMIT to prod [skip ci]"
+                            git push -q https://$GIT_USER:$GIT_TOKEN@$REPO HEAD:main
+                        }
                     '''
                 }
             }
@@ -109,7 +177,7 @@ pipeline {
 
     post {
         always {
-            deleteDir()   // clean the workspace after each build
+            deleteDir()
         }
     }
 }
