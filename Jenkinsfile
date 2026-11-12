@@ -92,10 +92,10 @@ pipeline {
                     sh '''
                         rm -rf deploy && git clone -q --depth 1 -b develop https://$REPO deploy
                         cd deploy
+                        grep -m1 'newTag:' k8s/overlays/staging/kustomization.yaml | awk '{print $2}' > ../prev_staging_tag
                         sed -i "s/newTag: .*/newTag: $SHORT_COMMIT/" k8s/overlays/staging/kustomization.yaml
                         git config user.name  "Jenkins"
                         git config user.email "jenkins@chat-platform.local"
-                        # Only commit if the tag actually changed
                         git diff --quiet || {
                             git commit -qam "Deploy $SHORT_COMMIT to staging [skip ci]"
                             git push -q https://$GIT_USER:$GIT_TOKEN@$REPO HEAD:develop
@@ -122,14 +122,34 @@ pipeline {
                         sleep 15
                     done
 
-                    # 2. Check the key features work
-                    curl -fs $STAGING_URL/healthz                                   # website up
-                    curl -fs "$STAGING_URL/api/messages?limit=1" > /dev/null        # history loads (DB ok)
+                    curl -fs $STAGING_URL/healthz
+                    curl -fs "$STAGING_URL/api/messages?limit=1" > /dev/null
                     curl -fs -X POST -H "Content-Type: application/json" \
                          -d "{\\"author\\":\\"smoke-test\\",\\"text\\":\\"smoke test $SHORT_COMMIT\\"}" \
-                         $STAGING_URL/api/messages > /dev/null                      # sending works
+                         $STAGING_URL/api/messages > /dev/null
                     echo "Smoke tests passed"
                 '''
+            }
+            post {
+                failure {
+                    withCredentials([usernamePassword(credentialsId: 'github-token',
+                                                      usernameVariable: 'GIT_USER',
+                                                      passwordVariable: 'GIT_TOKEN')]) {
+                        sh '''
+                            PREV=$(cat prev_staging_tag)
+                            echo "Smoke tests failed - rolling staging back to $PREV"
+                            rm -rf deploy && git clone -q --depth 1 -b develop https://$REPO deploy
+                            cd deploy
+                            sed -i "s/newTag: .*/newTag: $PREV/" k8s/overlays/staging/kustomization.yaml
+                            git config user.name  "Jenkins"
+                            git config user.email "jenkins@chat-platform.local"
+                            git diff --quiet || {
+                                git commit -qam "Rollback staging to $PREV (smoke tests failed for $SHORT_COMMIT) [skip ci]"
+                                git push -q https://$GIT_USER:$GIT_TOKEN@$REPO HEAD:develop
+                            }
+                        '''
+                    }
+                }
             }
         }
 
@@ -159,7 +179,6 @@ pipeline {
                                                   usernameVariable: 'GIT_USER',
                                                   passwordVariable: 'GIT_TOKEN')]) {
                     sh '''
-                        # Fresh copy of main (the branch Argo CD watches for prod)
                         rm -rf deploy && git clone -q --depth 1 -b main https://$REPO deploy
                         cd deploy
                         sed -i "s/newTag: .*/newTag: $SHORT_COMMIT/" k8s/overlays/prod/kustomization.yaml
@@ -181,5 +200,3 @@ pipeline {
         }
     }
 }
-
-// need to trigger build
