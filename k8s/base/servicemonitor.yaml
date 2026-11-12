@@ -1,0 +1,12 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: chat-api
+spec:
+  selector:
+    matchLabels:
+      app: chat-api
+  endpoints:
+    - port: http
+      path: /actuator/metrics
+      interval: 15s

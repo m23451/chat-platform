@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../eks
+
+namespace: staging
+
+images:
+  - name: chat-api
+    newName: 026146807811.dkr.ecr.eu-north-1.amazonaws.com/chat-site/chat-api
+    newTag: f2fc999
+  - name: chat-frontend
+    newName: 026146807811.dkr.ecr.eu-north-1.amazonaws.com/chat-site/chat-frontend
+    newTag: f2fc999

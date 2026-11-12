@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Live Chat</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <h1>Live Chat</h1>
+      <span id="status" class="status" data-state="connecting" role="status">
+        <span id="status-text">Connecting…</span>
+      </span>
+    </header>
+
+    <main id="scroller" class="scroller">
+      <button id="older" class="older" type="button" hidden>Load older messages</button>
+      <p id="empty" class="empty">Loading messages…</p>
+      <ol id="messages" class="messages" aria-live="polite" aria-label="Messages"></ol>
+    </main>
+
+    <p id="error" class="error" role="alert" hidden></p>
+
+    <form id="composer" class="composer" autocomplete="off" novalidate>
+      <div class="meta-row">
+        <label class="visually-hidden" for="name">Your name</label>
+        <input id="name" class="name" name="author" maxlength="30" placeholder="Your name" required>
+        <span id="counter" class="counter" aria-live="polite">0/500</span>
+      </div>
+      <div class="row">
+        <label class="visually-hidden" for="text">Message</label>
+        <textarea id="text" name="text" rows="1" maxlength="500" placeholder="Type a message…"></textarea>
+        <button id="send" class="send" type="submit" disabled>Send</button>
+      </div>
+    </form>
+  </div>
+
+  <noscript><p class="noscript">This chat needs JavaScript enabled.</p></noscript>
+</body>
+</html>

@@ -1,0 +1,9 @@
+flask
+kafka-python
+pytest
+flask
+psycopg[binary]
+psycopg-pool
+gunicorn
+flask-sock
+prometheus-flask-exporter

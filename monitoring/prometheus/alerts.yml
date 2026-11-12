@@ -1,0 +1,92 @@
+groups:
+  - name: chat-platform
+    rules:
+      - alert: ApiDown
+        expr: up{job="chat-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Chat API is down"
+          description: "Prometheus has not been able to scrape chat-api for 1 minute."
+          runbook_url: https://github.com/m23451/chat-platform/blob/develop/docs/runbooks/api-down.md
+
+      - alert: HighErrorRate
+        expr: sum(rate(flask_http_request_total{status=~"5.."}[5m])) / sum(rate(flask_http_request_total[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "More than 5% of API requests are failing"
+          description: "5xx ratio is {{ $value | humanizePercentage }} over 5 minutes."
+          runbook_url: https://github.com/m23451/chat-platform/blob/develop/docs/runbooks/high-error-rate.md
+
+      - alert: HighApiLatency
+        expr: histogram_quantile(0.95, sum by (le) (rate(flask_http_request_duration_seconds_bucket[5m]))) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "API p95 latency above 500ms"
+          description: "p95 latency is {{ $value }}s."
+          runbook_url: https://github.com/m23451/chat-platform/blob/develop/docs/runbooks/high-api-latency.md
+
+      - alert: SlowDatabaseQueries
+        expr: histogram_quantile(0.95, sum by (le) (rate(db_query_duration_seconds_bucket[5m]))) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Database query p95 above 500ms"
+          description: "DB p95 is {{ $value }}s."
+          runbook_url: https://github.com/m23451/chat-platform/blob/develop/docs/runbooks/slow-db-queries.md
+
+      - alert: NoWebsocketConnections
+        expr: websocket_connections == 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "No active WebSocket connections"
+          description: "No clients have been connected for 10 minutes. Check the websocket route and the Kafka consumer."
+          runbook_url: https://github.com/m23451/chat-platform/blob/develop/docs/runbooks/no-websocket-connections.md
+
+      - alert: KafkaPublishFailing
+        expr: rate(chat_kafka_publish_errors_total[5m]) > 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Messages are not being published to Kafka"
+          description: "The API saves messages but publishing to Kafka keeps failing. The API still returns 201, so users do not see an error."
+          runbook_url: https://github.com/m23451/chat-platform/blob/develop/docs/runbooks/kafka-publish-failing.md
+
+      - alert: ConsumerErrors
+        expr: rate(chat_consumer_errors_total[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "The Kafka consumer keeps hitting errors and reconnecting"
+          description: "chat_consumer_errors_total has been rising for 5 minutes, usually because Kafka is unreachable."
+          runbook_url: https://github.com/m23451/chat-platform/blob/develop/docs/runbooks/consumer-errors.md
+
+      - alert: ConsumerStalled
+        expr: sum(rate(chat_messages_saved_total[5m])) > 0 and sum(rate(chat_messages_consumed_total[5m])) == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Messages are saved but none are coming back through Kafka"
+          description: "Messages are being saved, but the consumer has processed none for 5 minutes, so other pods and browsers are not receiving them."
+          runbook_url: https://github.com/m23451/chat-platform/blob/develop/docs/runbooks/consumer-stalled.md
+
+      - alert: WebsocketConnectionsNearLimit
+        expr: websocket_connections >= 6
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Websocket connections are close to the gunicorn thread limit"
+          description: "Each open websocket holds one of the 8 gunicorn threads. At 8, normal requests and health probes queue behind them."
+          runbook_url: https://github.com/m23451/chat-platform/blob/develop/docs/runbooks/websocket-connections-near-limit.md
