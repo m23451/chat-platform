@@ -40,6 +40,10 @@ server {
         proxy_send_timeout 3600s;
     }
 
+    location = /actuator/info {
+        proxy_pass http://${API_UPSTREAM};
+        proxy_set_header Host $host;
+    }
     # REST API
     location /api/ {
         proxy_pass http://${API_UPSTREAM};
