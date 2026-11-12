@@ -9,7 +9,7 @@ namespace: staging
 images:
   - name: chat-api
     newName: 026146807811.dkr.ecr.eu-north-1.amazonaws.com/chat-site/chat-api
-    newTag: f2fc999
+    newTag: 612669e
   - name: chat-frontend
     newName: 026146807811.dkr.ecr.eu-north-1.amazonaws.com/chat-site/chat-frontend
-    newTag: f2fc999
+    newTag: 612669e
