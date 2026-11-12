@@ -1,0 +1,16 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: delay-postgres
+  namespace: staging
+spec:
+  action: delay
+  mode: one
+  selector:
+    namespaces: [staging]
+    labelSelectors:
+      app: postgres
+  delay:
+    latency: "500ms"
+    jitter: "100ms"
+  duration: "2m"

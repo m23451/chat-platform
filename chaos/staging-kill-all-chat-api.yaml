@@ -1,0 +1,12 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: kill-all-chat-api
+  namespace: staging
+spec:
+  action: pod-kill
+  mode: all
+  selector:
+    namespaces: [staging]
+    labelSelectors:
+      app: chat-api
