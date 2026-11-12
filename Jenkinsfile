@@ -18,11 +18,14 @@ pipeline {
                 sh 'git log -1 --oneline'
                 script {
                     env.SHORT_COMMIT = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+                    env.SKIP_CI = sh(script: 'git log -1 --pretty=%B | grep -q "\\[skip ci\\]" && echo true || echo false', returnStdout: true).trim()
+
                 }
             }
         }
 
         stage('Test') {
+            when { expression { env.SKIP_CI != 'true' } }
             steps {
                 sh '''
                     python3 -m venv .ci-venv
@@ -67,6 +70,35 @@ pipeline {
                         done
 
                         docker logout $REGISTRY
+                    '''
+                }
+            }
+        }
+
+
+
+        stage('Update deploy tag') {
+            when {
+                allOf {
+                    branch 'develop'
+                    expression { env.SKIP_CI != 'true' }
+                }
+            }
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'YOUR-GITHUB-CRED-ID',   // ← your ID
+                                                  usernameVariable: 'GIT_USER',
+                                                  passwordVariable: 'GIT_TOKEN')]) {
+                    sh '''
+                        # Point both images at the tag we just pushed
+                        sed -i "s/newTag: .*/newTag: $SHORT_COMMIT/" k8s/overlays/eks/kustomization.yaml
+
+                        git config user.name  "Jenkins"
+                        git config user.email "jenkins@chat-platform.local"
+                        git add k8s/overlays/eks/kustomization.yaml
+                        git commit -m "Deploy $SHORT_COMMIT [skip ci]"
+
+                        # Push back to the same branch
+                        git push https://$GIT_USER:$GIT_TOKEN@github.com/m23451/chat-platform.git HEAD:$BRANCH_NAME
                     '''
                 }
             }
