@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Live Chat</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 30px;
+        }
+
+        input {
+            padding: 8px;
+            margin: 5px;
+        }
+
+        button {
+            padding: 8px 14px;
+        }
+
+        #messages {
+            margin-top: 20px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            min-height: 200px;
+        }
+
+        .message {
+            border-bottom: 1px solid #eee;
+            padding: 8px 0;
+        }
+
+        .author {
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Live Chat Test</h1>
+
+    <input
+        id="username"
+        placeholder="Username">
+
+    <input
+        id="message"
+        placeholder="Message">
+
+    <button onclick="sendMessage()">
+        Send
+    </button>
+
+    <p id="status"></p>
+
+    <h2>Chat History</h2>
+
+    <div id="messages"></div>
+
+    <script>
+
+        async function loadMessages() {
+
+            const response =
+                await fetch("/api/messages");
+
+            const messages =
+                await response.json()
+
+            console.log(messages);
+
+            const container =
+                document.getElementById(
+                    "messages"
+                );
+
+            container.innerHTML = "";
+
+            messages.forEach(message => {
+
+                const div =
+                    document.createElement("div");
+
+                div.className = "message";
+
+                div.innerHTML = `
+                    <div class="author">
+                        ${message.author}
+                    </div>
+
+                    <div>
+                        ${message.text}
+                    </div>
+
+                    <small>
+                        ID: ${message.id}
+                        |
+                        ${message.created_at}
+                    </small>
+                `;
+
+                container.appendChild(div);
+            });
+        }
+
+
+        async function sendMessage() {
+
+            const data = {
+
+                username:
+                    document.getElementById(
+                        "username"
+                    ).value,
+
+                text:
+                    document.getElementById(
+                        "message"
+                    ).value,
+
+                client_id:
+                    crypto.randomUUID()
+            };
+
+            const response = await fetch(
+                "/api/messages",
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body:
+                        JSON.stringify(data)
+                }
+            );
+
+            const result =
+                await response.json();
+
+            document.getElementById(
+                "status"
+            ).innerText =
+                result.status;
+
+            document.getElementById(
+                "message"
+            ).value = "";
+
+            setTimeout(
+                loadMessages,
+                500
+            );
+        }
+
+        loadMessages();
+
+        setInterval(
+            loadMessages,
+            2000
+        );
+
+    </script>
+
+</body>
+
+</html>

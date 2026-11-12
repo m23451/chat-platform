@@ -1,4 +1,6 @@
-"""Tests for Kafka producer functions."""
+"""
+test_kafka.py
+Tests for Kafka producer functions."""
 
 import sys
 import os
@@ -17,7 +19,7 @@ from unittest.mock import patch
 from services.kafka_producer import publish_message
 
 
-
+# tests producer
 @patch("services.kafka_producer.producer")
 def test_publish_message_sends_and_flushes(
     mock_producer

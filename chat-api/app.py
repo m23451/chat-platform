@@ -13,7 +13,7 @@ app = Flask(__name__)
 
 @app.route("/")
 def home():
-    return render_template("index.html")
+    return render_template("chat-api/templates/index.html")
 
 #asynch change here for endpoint
 @app.route("/api/messages", methods=["POST"])
