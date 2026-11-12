@@ -6,7 +6,7 @@ pipeline {
         REGISTRY    = '026146807811.dkr.ecr.eu-north-1.amazonaws.com'
         AWS_REGION  = 'eu-north-1'
         REPO        = 'github.com/m23451/chat-platform.git'
-        STAGING_URL = 'http://a4336909f9e2f41069a3e45be725e5ff-1880544154.eu-north-1.elb.amazonaws.com:8080'
+        STAGING_URL = 'https://a4c648a242dcb45eeb7d00e8b2154c93-2063889023.eu-north-1.elb.amazonaws.com:8080'
     }
 
     options {
