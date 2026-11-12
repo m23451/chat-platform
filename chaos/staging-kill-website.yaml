@@ -1,0 +1,12 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: kill-website
+  namespace: staging
+spec:
+  action: pod-kill
+  mode: one
+  selector:
+    namespaces: [staging]
+    labelSelectors:
+      app: website

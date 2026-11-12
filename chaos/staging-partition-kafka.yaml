@@ -1,0 +1,20 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: partition-kafka
+  namespace: staging
+spec:
+  action: partition
+  mode: all
+  selector:
+    namespaces: [staging]
+    labelSelectors:
+      app: chat-api
+  direction: both
+  target:
+    mode: all
+    selector:
+      namespaces: [staging]
+      labelSelectors:
+        strimzi.io/pool-name: dual-role
+  duration: "2m"
