@@ -114,10 +114,13 @@ pipeline {
             }
             steps {
                 sh '''
-                    # 1. Wait for Argo CD to roll out the new version
-                    # TODO: replace with the /api/info version check once that endpoint is reachable
-                    echo "Waiting 4 minutes for Argo CD to deploy..."
-                    sleep 240
+                    for i in $(seq 1 40); do
+                        if curl -fs $STAGING_URL/actuator/info | grep -q "$SHORT_COMMIT"; then
+                            echo "Staging is running $SHORT_COMMIT"; break
+                        fi
+                        [ $i -eq 40 ] && { echo "Timed out waiting for staging"; exit 1; }
+                        sleep 15
+                    done
 
                     # 2. Check the key features work
                     curl -fs $STAGING_URL/healthz                                   # website up
