@@ -7,12 +7,9 @@ from flask_sock import Sock
 import db
 import metrics
 import os
-<<<<<<< HEAD
-import asyncio
-=======
 import chatSocket
+import asyncio
 from consumer import consumer
->>>>>>> b3f8498d6224c0df9664379306951e43bfc478b1
 
 KAFKA_BROKER_URL = os.getenv("KAFKA_BROKER_URL", "localhost:9092")
 KAFKA_TOPIC = os.getenv("KAFKA_TOPIC", "chat-messages")
@@ -35,14 +32,9 @@ def home():
 
 #asynch change here for endpoint
 @app.route("/api/messages", methods=["POST"])
-<<<<<<< HEAD
 async def send_message():
-    data = request.get_json()
-=======
-def send_message():
     metrics.MESSAGES_RECEIVED.inc()
     data = request.get_json(silent=True) or {}
->>>>>>> b3f8498d6224c0df9664379306951e43bfc478b1
     if (not data
             or not str(data.get("author", "")).strip()
             or not str(data.get("text", "")).strip()):
