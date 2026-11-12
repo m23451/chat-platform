@@ -50,3 +50,43 @@ groups:
           summary: "No active WebSocket connections"
           description: "No clients have been connected for 10 minutes. Check the websocket route and the Kafka consumer."
           runbook_url: https://github.com/m23451/chat-platform/blob/develop/docs/runbooks/no-websocket-connections.md
+
+      - alert: KafkaPublishFailing
+        expr: rate(chat_kafka_publish_errors_total[5m]) > 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Messages are not being published to Kafka"
+          description: "The API saves messages but publishing to Kafka keeps failing. The API still returns 201, so users do not see an error."
+          runbook_url: https://github.com/m23451/chat-platform/blob/develop/docs/runbooks/kafka-publish-failing.md
+
+      - alert: ConsumerErrors
+        expr: rate(chat_consumer_errors_total[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "The Kafka consumer keeps hitting errors and reconnecting"
+          description: "chat_consumer_errors_total has been rising for 5 minutes, usually because Kafka is unreachable."
+          runbook_url: https://github.com/m23451/chat-platform/blob/develop/docs/runbooks/consumer-errors.md
+
+      - alert: ConsumerStalled
+        expr: sum(rate(chat_messages_saved_total[5m])) > 0 and sum(rate(chat_messages_consumed_total[5m])) == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Messages are saved but none are coming back through Kafka"
+          description: "Messages are being saved, but the consumer has processed none for 5 minutes, so other pods and browsers are not receiving them."
+          runbook_url: https://github.com/m23451/chat-platform/blob/develop/docs/runbooks/consumer-stalled.md
+
+      - alert: WebsocketConnectionsNearLimit
+        expr: websocket_connections >= 6
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Websocket connections are close to the gunicorn thread limit"
+          description: "Each open websocket holds one of the 8 gunicorn threads. At 8, normal requests and health probes queue behind them."
+          runbook_url: https://github.com/m23451/chat-platform/blob/develop/docs/runbooks/websocket-connections-near-limit.md

@@ -10,7 +10,7 @@ sys.path.append(
         )
     )
 )
-
+import db
 import pytest
 from app import app
 
@@ -22,6 +22,7 @@ def test_home(client):
     response = client.get("/")
     assert response.status_code == 200
 
-def test_get_messages(client):
+def test_get_messages(client, monkeypatch):                              # ← added monkeypatch
+    monkeypatch.setattr(db, "load_history", lambda limit, before: [])
     response = client.get("/api/messages")
     assert response.status_code == 200
