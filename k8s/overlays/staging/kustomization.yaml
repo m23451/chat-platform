@@ -9,7 +9,7 @@ namespace: prod
 images:
   - name: chat-api
     newName: 026146807811.dkr.ecr.eu-north-1.amazonaws.com/chat-site/chat-api
-    newTag: 8e4605e
+    newTag: ae32d62
   - name: chat-frontend
     newName: 026146807811.dkr.ecr.eu-north-1.amazonaws.com/chat-site/chat-frontend
-    newTag: 8e4605e
+    newTag: ae32d62
