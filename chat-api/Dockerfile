@@ -3,6 +3,10 @@ FROM python:3.12-slim
 WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 
+ARG APP_VERSION=dev
+ARG GIT_COMMIT=unknown
+ENV APP_VERSION=$APP_VERSION GIT_COMMIT=$GIT_COMMIT
+
 # Install packages first, so this layer is cached when only code changes
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
