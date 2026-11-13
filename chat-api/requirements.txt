@@ -1,7 +1,6 @@
-flask
+flask[async]
 kafka-python
 pytest
-flask
 psycopg[binary]
 psycopg-pool
 gunicorn

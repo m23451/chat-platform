@@ -1,6 +1,10 @@
 # Frontend: static files served by NGINX, running as a non-root user on port 8080.
 FROM nginxinc/nginx-unprivileged:1.27-alpine
 
+# Install the latest Alpine security fixes
+USER root
+RUN apk upgrade --no-cache
+USER 101
 ARG APP_VERSION=dev
 ARG GIT_COMMIT=unknown
 LABEL org.opencontainers.image.title="chat-frontend" \

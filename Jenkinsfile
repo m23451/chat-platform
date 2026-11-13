@@ -62,15 +62,11 @@ pipeline {
                 sh '''
                     for app in chat-api chat-frontend; do
                         echo "Scanning $app:$SHORT_COMMIT"
-                        docker run --rm \
-                            -v /var/run/docker.sock:/var/run/docker.sock \
+                        docker save $app:$SHORT_COMMIT | docker run --rm -i \
                             -v trivy-cache:/root/.cache/ \
-                            aquasec/trivy:latest image \
-                            --severity CRITICAL \
-                            --ignore-unfixed \
-                            --exit-code 1 \
-                            --no-progress \
-                            $app:$SHORT_COMMIT
+                            --entrypoint sh \
+                            aquasec/trivy:latest -c \
+                            "cat > /tmp/image.tar && trivy image --input /tmp/image.tar --scanners vuln --severity CRITICAL --ignore-unfixed --exit-code 1 --no-progress"
                     done
                 '''
             }
